@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Générateur de Planning d'Études</title>
+  <style>
+    /* --- Styles généraux --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .main-content {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 600px;
+      width: 90%;
+      text-align: center;
+      display: none; /* de base, on masque tous les containers sauf le premier */
+    }
+    h1 {
+      font-size: 1.8em;
+      color: #007BFF;
+      margin-bottom: 15px;
+    }
+    p {
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+    input, button, select {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+    button {
+      background-color: #007BFF;
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .back-btn {
+      background-color: #c62828;
+    }
+    .back-btn:hover {
+      background-color: #b71c1c;
+    }
+    /* --- Styles spécifiques --- */
+    .sticker img {
+      width: 100px;
+      margin: 20px 0;
+    }
+    .calendar {
+      flex-direction: column;
+      align-items: center;
+    }
+    .day {
+      margin: 10px 0;
+      text-align: left;
+    }
+    .day label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .qcm {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .qcm input {
+      margin-right: 5px;
+    }
+    #totalHours {
+      font-size: 1.2em;
+      color: #007BFF;
+      margin: 20px 0;
+    }
+    /* Écran 4 */
+    #subjectCounter {
+      font-weight: bold;
+      color: #007BFF;
+      margin-bottom: 5px;
+    }
+    #result h2 {
+      margin-top: 10px;
+      font-size: 1.4em;
+      color: #007BFF;
+    }
+    #allocationList {
+      list-style-type: none;
+      margin-top: 10px;
+      text-align: left;
+    }
+    #finalSchedule {
+      margin-top: 30px;
+      text-align: left;
+    }
+    #finalSchedule h3 {
+      color: #007BFF;
+      margin-bottom: 5px;
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+    /* Tableau final du planning */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    table thead {
+      background-color: #f0f0f0;
+    }
+    #purchaseLink {
+      margin-top: 20px;
+      display: inline-block;
+      color: #fff;
+      background-color: #28a745;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    #purchaseLink:hover {
+      background-color: #218838;
+    }
+    /* Petit copyright en bas de page */
+    footer {
+      text-align: center;
+      font-size: 0.8em;
+      color: #999;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <!-- Écran 1 : Saisie du prénom -->
+    <div class="container" id="welcomeScreen" style="display: block;">
+      <h1>Bienvenue dans votre Générateur de Planning d'Études</h1>
+      <div class="sticker">
+        <img 
+          src="https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif" 
+          alt="Welcome Sticker"
+        />
+      </div>
+      <p>Bonjour ! Nous sommes ravis de vous accompagner pour organiser votre réussite.</p>
+      <p>Commencez par nous dire votre prénom :</p>
+      <input type="text" id="userName" placeholder="Votre prénom (2 caractères min)"/>
+      <button onclick="startPlanning()">Continuer</button>
+      <p>Étapes : Sélection des disponibilités ⮕ Choix du nombre de matières ⮕ Saisie & difficulté ⮕ Planning personnalisé !</p>
+    </div>
+
+    <!-- Écran 2 : Choix des disponibilités -->
+    <div class="container calendar" id="calendarScreen">
+      <h1 id="greeting"></h1>
+      <p>Pour chaque jour de la semaine, sélectionnez vos créneaux horaires disponibles :</p>
+      <div id="daysContainer"></div>
+      <div id="totalHours">Total d'heures sélectionnées : 0</div>
+      <button class="back-btn" onclick="goBackToWelcome()">Retour</button>
+      <button onclick="validateCalendar()">Continuer</button>
+    </div>
+
+    <!-- Écran 3 : Nombre de matières -->
+    <div class="container" id="numCoursesScreen">
+      <h1>Planification des matières</h1>
+      <p>Vous avez <span id="displayTotalHours">0</span> heures disponibles.</p>
+      <p>Combien de matières souhaitez-vous réviser ?</p>
+      <input type="number" id="numCourses" placeholder="Nombre de matières (> 0)"/>
+      <button class="back-btn" onclick="goBackToCalendar()">Retour</button>
+      <button onclick="goToCoursesScreen()">Suivant</button>
+    </div>
+
+    <!-- Écran 4 : Évaluation des matières + Résultat final -->
+    <div class="container" id="coursesScreen">
+      <!-- On retire le texte « Bonjour, Dany ! Veuillez indiquer… » -->
+      <!-- On garde juste le formulaire de saisie et le bloc final -->
+
+      <!-- Compteur de matières -->
+      <div id="subjectCounter" style="margin-top: 15px;"></div>
+
+      <input type="text" id="subjectName" placeholder="Nom de la matière (2 caractères min)"/>
+      <select id="difficulty">
+        <option value="">Sélectionnez le niveau de difficulté</option>
+        <option value="1">1 - Facile</option>
+        <option value="2">2 - Plutôt facile</option>
+        <option value="3">3 - Moyenne</option>
+        <option value="4">4 - Difficile</option>
+        <option value="5">5 - Très difficile</option>
+      </select>
+
+      <div id="coursesInputButtons">
+        <button onclick="nextSubject()">Suivant</button>
+        <button class="back-btn" onclick="goBackToNumCourses()">Retour</button>
+      </div>
+
+      <!-- Répartition finale -->
+      <div id="result" style="display: none;">
+        <h2 id="finalMessage"></h2>
+        <ul id="allocationList"></ul>
+
+        <!-- Planning final : jour par jour, heure par heure -->
+        <div id="finalSchedule"></div>
+
+        <!-- Lien d'achat -->
+        <a 
+          id="purchaseLink"
+          href="https://www.amazon.com/Sorganiser-r%C3%A9ussir-%C3%A9tudes-examens-concours/dp/B0CR44B8MV"
+          target="_blank"
+          >Découvrir un guide complet pour aller plus loin</a>
+      </div>
+    </div>
+  </div> <!-- /main-content -->
+
+  <!-- Petit copyright en bas de page, discret -->
+  <footer>(c) Dany Dombou, 2024</footer>
+
+  <script>
+    /************************************************
+     *           Données et variables globales       *
+     ***********************************************/
+    const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    
+    let userData = {
+      name: "",
+      availability: {}, // ex: { Lundi: [5,6,7], Mardi: [...] }
+      totalHours: 0,
+      numCourses: 0,
+      difficulties: [], // chaque élément : { subject, difficulty }
+      currentCourseIndex: 0
+    };
+
+    /************************************************
+     *       Écran 1 : Saisie du prénom             *
+     ***********************************************/
+    function startPlanning() {
+      const nameInput = document.getElementById('userName').value.trim();
+      // Contrôle minimal sur la saisie du prénom
+      if (nameInput.length < 2) {
+        alert('Veuillez saisir un prénom d’au moins 2 caractères.');
+        return;
+      }
+      userData.name = nameInput;
+
+      // Passer à l'écran 2
+      document.getElementById('welcomeScreen').style.display = 'none';
+      document.getElementById('calendarScreen').style.display = 'flex';
+
+      // Affiche la salutation
+      document.getElementById('greeting').textContent = `Bonjour, ${nameInput} !`;
+
+      // Générer dynamiquement les créneaux
+      generateCalendar();
+    }
+
+    // Retour à l'écran de bienvenue
+    function goBackToWelcome() {
+      document.getElementById('calendarScreen').style.display = 'none';
+      document.getElementById('welcomeScreen').style.display = 'block';
+    }
+
+    /************************************************
+     *     Écran 2 : Choix des disponibilités       *
+     ***********************************************/
+    function generateCalendar() {
+      const daysContainer = document.getElementById('daysContainer');
+      daysContainer.innerHTML = ""; // Nettoyer si on revient en arrière
+
+      days.forEach(day => {
+        // Initialiser le tableau de dispo
+        userData.availability[day] = [];
+
+        const dayDiv = document.createElement('div');
+        dayDiv.classList.add('day');
+
+        const label = document.createElement('label');
+        label.textContent = day;
+        
+        const qcmDiv = document.createElement('div');
+        qcmDiv.classList.add('qcm');
+
+        // Création des horaires de 5h à 22h
+        for (let hour = 5; hour <= 22; hour++) {
+          const optionDiv = document.createElement('div');
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = hour;
+
+          // Gestion du changement de la checkbox
+          checkbox.addEventListener('change', () => updateTotalHours(day, checkbox));
+
+          const span = document.createElement('span');
+          span.textContent = `${hour}:00 - ${hour + 1}:00`;
+
+          optionDiv.appendChild(checkbox);
+          optionDiv.appendChild(span);
+          qcmDiv.appendChild(optionDiv);
+        }
+
+        dayDiv.appendChild(label);
+        dayDiv.appendChild(qcmDiv);
+        daysContainer.appendChild(dayDiv);
+      });
+    }
+
+    // Mise à jour du total d'heures quand on coche/décoche
+    function updateTotalHours(day, checkbox) {
+      const hourValue = parseInt(checkbox.value);
+      if (checkbox.checked) {
+        userData.availability[day].push(hourValue);
+      } else {
+        userData.availability[day] = userData.availability[day].filter(h => h !== hourValue);
+      }
+      displayTotalSelectedHours();
+    }
+
+    function displayTotalSelectedHours() {
+      const total = Object.values(userData.availability)
+        .reduce((sum, hours) => sum + hours.length, 0);
+      userData.totalHours = total;
+      document.getElementById('totalHours').textContent = `Total d'heures sélectionnées : ${total}`;
+    }
+
+    function validateCalendar() {
+      // Vérifier que l'utilisateur a sélectionné au moins un créneau
+      if (userData.totalHours === 0) {
+        alert("Veuillez sélectionner au moins un créneau horaire disponible pour continuer.");
+        return;
+      }
+      // Passer à l'écran 3
+      document.getElementById('calendarScreen').style.display = 'none';
+      document.getElementById('numCoursesScreen').style.display = 'block';
+      // Afficher le total d'heures
+      document.getElementById('displayTotalHours').textContent = userData.totalHours;
+    }
+
+    /************************************************
+     *   Écran 3 : Choix du nombre de matières      *
+     ***********************************************/
+    function goToCoursesScreen() {
+      const inputNum = document.getElementById('numCourses').value.trim();
+      const parsedNum = parseInt(inputNum, 10);
+
+      // Contrôle de validité
+      if (isNaN(parsedNum) || parsedNum <= 0) {
+        alert('Veuillez entrer un nombre de matières supérieur à 0.');
+        return;
+      }
+      userData.numCourses = parsedNum;
+
+      // Passer à l'écran 4
+      document.getElementById('numCoursesScreen').style.display = 'none';
+      document.getElementById('coursesScreen').style.display = 'block';
+
+      // Préparer la première matière
+      userData.currentCourseIndex = 0;
+      updateSubjectCounter();
+    }
+
+    function goBackToCalendar() {
+      document.getElementById('numCoursesScreen').style.display = 'none';
+      document.getElementById('calendarScreen').style.display = 'flex';
+    }
+
+    /************************************************
+     *  Écran 4 : Saisie des matières/difficultés   *
+     ***********************************************/
+    function updateSubjectCounter() {
+      // Indication : "Matière X / Y"
+      const counter = document.getElementById('subjectCounter');
+      const x = userData.currentCourseIndex + 1;  // index humain (base 1)
+      const y = userData.numCourses;
+      counter.textContent = `Matière ${x} / ${y}`;
+    }
+
+    function nextSubject() {
+      const subjectName = document.getElementById('subjectName').value.trim();
+      const selectedDifficulty = document.getElementById('difficulty').value;
+
+      // Contrôles
+      if (subjectName.length < 2) {
+        alert("Veuillez entrer un nom de matière d’au moins 2 caractères.");
+        return;
+      }
+      if (!selectedDifficulty) {
+        alert("Veuillez sélectionner un niveau de difficulté.");
+        return;
+      }
+
+      // Enregistrer la matière et sa difficulté
+      userData.difficulties.push({
+        subject: subjectName,
+        difficulty: parseInt(selectedDifficulty, 10),
+      });
+
+      userData.currentCourseIndex++;
+
+      // Nettoyer les champs pour la matière suivante (ou fin)
+      document.getElementById('subjectName').value = "";
+      document.getElementById('difficulty').value = "";
+
+      // Vérifier si on a saisi toutes les matières
+      if (userData.currentCourseIndex < userData.numCourses) {
+        // Afficher le compteur mis à jour et rester sur le formulaire
+        updateSubjectCounter();
+      } else {
+        // Toutes les matières sont saisies, on calcule la répartition
+        calculateHours();
+      }
+    }
+
+    function calculateHours() {
+      // Masquer le formulaire d’ajout de cours, puisqu’on est arrivé au bout
+      document.getElementById('coursesInputButtons').style.display = "none";
+      document.getElementById('subjectName').style.display = "none";
+      document.getElementById('difficulty').style.display = "none";
+      document.getElementById('subjectCounter').style.display = "none";
+
+      // Calcul du total des difficultés
+      const totalDifficulty = userData.difficulties.reduce(
+        (sum, item) => sum + item.difficulty,
+        0
+      );
+
+      // Calculer la répartition des heures pour chaque matière
+      const allocation = userData.difficulties.map(item => {
+        const ratio = item.difficulty / totalDifficulty;
+        // On arrondit la répartition
+        const allocatedHours = Math.round(ratio * userData.totalHours);
+        return { subject: item.subject, hours: allocatedHours };
+      });
+
+      // Message final personnalisé
+      const finalMsg = document.getElementById("finalMessage");
+      finalMsg.textContent = 
+        `Félicitations, ${userData.name} ! Nous avons analysé tes matières et tes disponibilités. Voici la répartition d'heures conseillée :`;
+
+      // Afficher la liste récapitulative (ex: "Maths: 5 heures", etc.)
+      const allocationList = document.getElementById("allocationList");
+      allocationList.innerHTML = "";
+      allocation.forEach(item => {
+        const listItem = document.createElement("li");
+        listItem.textContent = `${item.subject} : ${item.hours} heure(s)`;
+        allocationList.appendChild(listItem);
+      });
+
+      // Générer le planning final (jour par jour, heure par heure)
+      const schedule = distributeHours(allocation);
+      displaySchedule(schedule);
+
+      // On rend la section de résultat visible
+      document.getElementById("result").style.display = "block";
+    }
+
+    /**
+     * Distribue les heures allouées dans les créneaux sélectionnés,
+     * de façon séquentielle : on remplit la 1re matière, puis la 2e, etc.
+     */
+    function distributeHours(allocation) {
+      // Convertir en une liste triée de {day, hour}, dans l’ordre chronologique
+      const dayHourPairs = [];
+      for (const day of days) {
+        // Ordonner la liste d’heures sélectionnées
+        const sortedHours = userData.availability[day].slice().sort((a,b) => a - b);
+        sortedHours.forEach(hour => {
+          dayHourPairs.push({ day, hour });
+        });
+      }
+
+      let schedule = {}; // ex: { Lundi: { 5: 'Maths', 6: 'Anglais' }, ... }
+      days.forEach(d => (schedule[d] = {}));
+
+      let indexPair = 0;
+      allocation.forEach(item => {
+        let hoursLeft = item.hours;
+        while (hoursLeft > 0 && indexPair < dayHourPairs.length) {
+          const { day, hour } = dayHourPairs[indexPair];
+          schedule[day][hour] = item.subject;
+          hoursLeft--;
+          indexPair++;
+        }
+      });
+      return schedule;
+    }
+
+    /**
+     * Affiche le planning final sous forme de tableau
+     */
+    function displaySchedule(schedule) {
+      const finalScheduleDiv = document.getElementById('finalSchedule');
+      finalScheduleDiv.innerHTML = "<h3>Votre Planning Personnalisé</h3>";
+
+      // Récupérer toutes les heures cochées
+      let allSelectedHours = new Set();
+      days.forEach(day => {
+        userData.availability[day].forEach(hr => allSelectedHours.add(hr));
+      });
+      let hourArray = Array.from(allSelectedHours).sort((a,b) => a - b);
+
+      if (hourArray.length === 0) {
+        finalScheduleDiv.innerHTML += 
+          "<p>Aucun créneau sélectionné, pas de planning à afficher.</p>";
+        return;
+      }
+
+      let html = "<table>";
+      // Ligne d’en-tête
+      html += "<thead><tr><th>Heure</th>";
+      days.forEach(day => {
+        html += `<th>${day}</th>`;
+      });
+      html += "</tr></thead>";
+
+      // Corps du tableau
+      html += "<tbody>";
+      hourArray.forEach(hour => {
+        html += `<tr><td>${hour}:00 - ${hour+1}:00</td>`;
+        days.forEach(day => {
+          const subject = schedule[day][hour] || "";
+          html += `<td>${subject}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+
+      finalScheduleDiv.innerHTML += html;
+    }
+
+    function goBackToNumCourses() {
+      document.getElementById('coursesScreen').style.display = 'none';
+      document.getElementById('numCoursesScreen').style.display = 'block';
+
+      // Réinitialisations éventuelles
+      document.getElementById('result').style.display = "none";
+      document.getElementById('coursesInputButtons').style.display = "block";
+      document.getElementById('subjectName').style.display = "inline-block";
+      document.getElementById('difficulty').style.display = "inline-block";
+      document.getElementById('subjectCounter').style.display = "block";
+      document.getElementById('allocationList').innerHTML = "";
+      document.getElementById('finalSchedule').innerHTML = "";
+      document.getElementById('finalMessage').textContent = "";
+      
+      userData.difficulties = [];
+      userData.currentCourseIndex = 0;
+    }
+  </script>
+</body>
+</html>
